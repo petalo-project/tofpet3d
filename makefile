@@ -22,9 +22,6 @@ CFLAGS += -O2
 # Debug flags
 CFLAGS += -pg
 
-# Linking flags
-#LDFLAGS = -L/Users/jrenner/IFIC/software/root/lib -lGeom -lm -lGui -L/opt/local/lib/gcc48 -lCore \
-
 all:	$(TARGETS)
 	@echo Creating library libmlem...
 	@$(CXX) -shared -o $(LIBDIR)/libmlem.so $(OBJECTS)
