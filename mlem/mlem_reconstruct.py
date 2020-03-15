@@ -42,6 +42,7 @@ class MLEMReconstructor:
     :param img_size_z: the image size in the z dimension (in mm)
     :param img_nvoxels_xy: the number of voxels in the x and y dimensions
     :param img_nvoxels_z: the number of voxels in the z dimension
+    :param smatrix: the sensitivity matrix s[x,y,z]
     :param libpath: the path to the C++ reconstruction library
     """
 
@@ -50,6 +51,7 @@ class MLEMReconstructor:
                  TOF_resolution: float = 200.,
                  img_size_xy: float = 180.0, img_size_z: float = 180.0,
                  img_nvoxels_xy: int = 60, img_nvoxels_z: int = 60,
+                 smatrix: np.ndarray = None,
                  libpath: str = "lib/libMLEM.so"):
 
         # Set default values for key variables.
@@ -62,6 +64,12 @@ class MLEMReconstructor:
         self.img_size_z = img_size_z
         self.img_nvoxels_xy = img_nvoxels_xy
         self.img_nvoxels_z = img_nvoxels_z
+
+        if(smatrix is None):
+            self.smatrix = np.ones([img_nvoxels_xy, img_nvoxels_xy, img_nvoxels_z])
+            print("Sensitivity matrix not specified: assuming a matrix of 1s.")
+        else:
+            self.smatrix = smatrix
 
         # Load the C library.
         self.lib = cdll.LoadLibrary(libpath)
@@ -134,13 +142,25 @@ class MLEMReconstructor:
         :returns: array of shape [`img_size_xy`, `img_size_xy`,`img_size_z`] containing the reconstructed image
         """
 
-        # Ensure arrays are all the same size.
+        # Ensure LOR arrays are all the same size.
         ncoinc = len(lor_x1)
         if(len(lor_y1) != ncoinc or len(lor_z1) != ncoinc
            or len(lor_t1) != ncoinc or len(lor_x2) != ncoinc
            or len(lor_y2) != ncoinc or len(lor_z2) != ncoinc
            or len(lor_t2) != ncoinc):
             print("ERROR: all LOR arrays must contain the same # of values")
+            return None
+
+        # Construct some quantities for ease of use later.
+        xdim = ydim = self.img_nvoxels_xy
+        zdim = self.img_nvoxels_z
+        nvoxels = xdim*ydim*zdim
+
+        # Flatten the sensitivity matrix - note: must be column-major ('F').
+        smat = self.smatrix.flatten('F')
+        if(len(smat) != nvoxels):
+            print("ERROR: sensitivity matrix must have dimensions [{},{},{}]".format(self.img_nvoxels_xy,self.img_nvoxels_xy,self.img_nvoxels_z))
+            return None
 
         # ---------------------------------------------------------
         # Call the C-function for reconstruction.
@@ -155,6 +175,7 @@ class MLEMReconstructor:
         lor_y2 = (c_float * ncoinc)(*lor_y2)
         lor_z2 = (c_float * ncoinc)(*lor_z2)
         lor_t2 = (c_float * ncoinc)(*lor_t2)
+        smat   = (c_float * nvoxels)(*smat)
         prefix = c_char_p(self.prefix.encode('utf-8'))
 
         # Set the argument types and return type.
@@ -162,7 +183,7 @@ class MLEMReconstructor:
          c_float, c_float, c_int, c_int, c_int,
          POINTER(c_float), POINTER(c_float), POINTER(c_float), POINTER(c_float),
          POINTER(c_float), POINTER(c_float), POINTER(c_float), POINTER(c_float),
-         c_char_p, c_int)
+         POINTER(c_float), c_char_p, c_int)
 
         self.lib.MLEM_TOF_Reco.restype = POINTER(c_float)
 
@@ -173,16 +194,11 @@ class MLEMReconstructor:
                                 self.img_nvoxels_z, ncoinc,
                                 lor_x1, lor_y1, lor_z1, lor_t1,
                                 lor_x2, lor_y2, lor_z2, lor_t2,
-                                prefix, self.save_every)
+                                smat, prefix, self.save_every)
 
         # --------------------------------------------------
         # Prepare the numpy image from the C float pointer.
         # --------------------------------------------------
-
-        # Construct some quantities for ease of use later.
-        xdim = ydim = self.img_nvoxels_xy
-        zdim = self.img_nvoxels_z
-        nvoxels = xdim*ydim*zdim
 
         # Create a 3D numpy array of the correct dimensions.
         img_arr = np.zeros([xdim,ydim,zdim])
