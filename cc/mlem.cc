@@ -42,7 +42,7 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
 	float FOV_XY, float FOV_Z, int NXY, int NZ,
 	int ncoinc, float * LOR_X1, float * LOR_Y1, float * LOR_Z1, float * LOR_T1,
 	float * LOR_X2, float * LOR_Y2, float * LOR_Z2, float * LOR_T2,
-  const char * outfile_prefix, int out_niter) {
+  float * SENS, const char * outfile_prefix, int out_niter) {
 
 	FILE* outfile;
 	char outfile_name[100];
@@ -114,10 +114,9 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
 		for(int iV = 0; iV < nvoxels; iV++) {
 
 			// Apply the sensitivity matrix.
-			//if(SENS[iV] > 0) NEW_IMAGE[iV] = (NEW_IMAGE[iV] * IMAGE[iV]) / SENS[iV];
-			//else NEW_IMAGE[iV] = 0.;
+			if(SENS[iV] > 0) NEW_IMAGE[iV] = (NEW_IMAGE[iV] * IMAGE[iV]) / SENS[iV];
+			else NEW_IMAGE[iV] = 0.;
 
-			NEW_IMAGE[iV] = (NEW_IMAGE[iV] * IMAGE[iV]);
 			IMAGE[iV] = NEW_IMAGE[iV];
 		}
 
