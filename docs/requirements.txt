@@ -1,0 +1,5 @@
+#
+####### tofpet3d requirements.txt #######
+#
+sphinx_autodoc_typehints
+numpy
