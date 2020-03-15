@@ -8,8 +8,8 @@ LIBDIR = $(TOFPET3DDIR)/lib
 
 SOURCES = $(wildcard $(SRCDIR)/*.cc)
 OBJECTS = $(subst $(SRCDIR),$(OBJDIR),$(SOURCES:.cc=.o))
-TARGETS = $(OBJECTS)
-TARGETS += dirs
+TARGETS = dirs
+TARGETS += $(OBJECTS)
 
 CXX = g++
 
