@@ -148,7 +148,7 @@ float ToFFunction(float dist, float deltaT, float TOF_resolution) {
 
   const float std_trunk = 3.;     //very important to cut the gaussian and give the elements some compact support
 
-  if (abs( deltaT_line ) < (std_trunk*line_resolution_SIGM) ) {
+  if (fabs( deltaT_line ) < (std_trunk*line_resolution_SIGM) ) {
     ToFweight = (1.0/sqrt(2.0*pi*line_resolution_SIGM*line_resolution_SIGM)) * exp( - ((deltaT_line * deltaT_line)/(2*line_resolution_SIGM*line_resolution_SIGM)));\
   }
   else {
