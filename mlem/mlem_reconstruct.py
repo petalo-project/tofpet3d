@@ -66,7 +66,7 @@ class MLEMReconstructor:
         self.img_nvoxels_z = img_nvoxels_z
 
         if(smatrix is None):
-            self.smatrix = np.ones([img_nvoxels_xy, img_nvoxels_xy, img_nvoxels_z])
+            self.smatrix = np.ones([img_nvoxels_xy, img_nvoxels_xy, img_nvoxels_z]).astype('float32')
             print("Sensitivity matrix not specified: assuming a matrix of 1s.")
         else:
             self.smatrix = smatrix
