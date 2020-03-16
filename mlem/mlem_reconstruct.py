@@ -1,7 +1,8 @@
 from ctypes import *
-import os
+import os, sys
 import struct
 import numpy as np
+from os import path
 
 
 class MLEMReconstructor:
@@ -141,6 +142,10 @@ class MLEMReconstructor:
         :type lor_t2: list
         :returns: array of shape [`img_size_xy`, `img_size_xy`,`img_size_z`] containing the reconstructed image
         """
+
+        if not path.exists(self.prefix):
+            print(f"Path {self.prefix} doesn't exists - exit job", file=sys.stderr)
+            sys.exit(1)
 
         # Ensure LOR arrays are all the same size.
         ncoinc = len(lor_x1)
