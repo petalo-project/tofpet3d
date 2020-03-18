@@ -22,7 +22,6 @@
 using namespace std;
 
 // Constants
-const float s2ps = 1000; // our times are in ns
 const float pi = 3.141592653589793;
 const float c_here = 0.3;
 
@@ -93,7 +92,7 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
 			d2X = LOR_X2[k_lor]; d2Y = LOR_Y2[k_lor]; d2Z = LOR_Z2[k_lor]; time2 = LOR_T2[k_lor];
 
 			// all time variables are in ps, to allow floating precision along with the code.
-			time_diff = (time1*s2ps - time2*s2ps); // always negative
+			time_diff = (time1 - time2); // always negative
 
     	projection = siddon(false, IMAGE, 0., d1X, d1Y, d1Z, d2X, d2Y, d2Z, time_diff,
 																ox, oy, oz, vx, vy, vz, nx, ny, nz, TOF, TOF_resolution);
