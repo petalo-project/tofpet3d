@@ -124,6 +124,7 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
 			sprintf(outfile_name,"%s%d.raw",outfile_prefix,iter);
 			outfile = fopen(outfile_name,"wb");
 	 		fwrite(NEW_IMAGE,sizeof(float),nvoxels,outfile);
+      fclose(outfile);
 	  }
 
 		for(int iV = 0; iV < nvoxels; iV++) {
