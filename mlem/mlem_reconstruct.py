@@ -143,8 +143,14 @@ class MLEMReconstructor:
         :returns: array of shape [`img_size_xy`, `img_size_xy`,`img_size_z`] containing the reconstructed image
         """
 
-        if not path.exists(self.prefix):
-            print(f"Path {self.prefix} doesn't exists - exit job", file=sys.stderr)
+        folders = self.prefix.split('/')
+        folder_path = ''
+        for p in folders[:-1]:
+            if p != '':
+                folder_path += p
+            folder_path += '/'
+        if not path.exists(folder_path):
+            print(f"Path {folder_path} doesn't exists - exit job", file=sys.stderr)
             sys.exit(1)
 
         # Ensure LOR arrays are all the same size.
