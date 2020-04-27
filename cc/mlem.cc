@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -44,7 +45,7 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
   float * SENS, const char * outfile_prefix, int out_niter) {
 
 	FILE* outfile;
-	char outfile_name[100];
+        string outfile_name;
 
 	int nvoxels = NXY * NXY * NZ;
 
@@ -67,35 +68,36 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
 	float  d2X, d2Y, d2Z, time2;
 
 	// ====== IMAGES ===================================
-	float* NEW_IMAGE    = (float*)malloc(nvoxels*sizeof(float));	//IMAGE (k)
-	float* IMAGE	      = (float*)malloc(nvoxels*sizeof(float));	//IMAGE (k-1)
-	for(int iV = 0; iV < nvoxels; iV++) { IMAGE[iV] = 1.;       }      // Unitary image (k)
-	for(int iV = 0; iV < nvoxels; iV++) { NEW_IMAGE[iV] = 0.;   }  // Zero image (k+1)
+	float* NEW_IMAGE = (float*)malloc(nvoxels*sizeof(float)); //IMAGE (k)
+	float* IMAGE	 = (float*)malloc(nvoxels*sizeof(float)); //IMAGE (k-1)
+	for (int iV = 0; iV < nvoxels; iV++) { IMAGE[iV] = 1.; } //Unitary image (k)
+	for (int iV = 0; iV < nvoxels; iV++) { NEW_IMAGE[iV] = 0.; } //Zero image (k+1)
 
 	// ====== ITERATIONS ==============================
 	float time_diff;
 
 	// START ITERATING
-	for(int iter = 0; iter < niterations; iter++) {
+	for (int iter = 0; iter < niterations; iter++) {
 
-		float P = 0;
+          float P = 0;
 
-    // Read the coincidences LOR by LOR.
-    for(int k_lor = 0; k_lor < ncoinc; k_lor++) {
+          // Read the coincidences LOR by LOR.
+          for (int k_lor = 0; k_lor < ncoinc; k_lor++) {
 
-      if ( k_lor % 10000000 == 0 ) cout << "Iter= " << iter << " Processing " << k_lor << " coincidences " << endl;
+            if ( k_lor % 10000000 == 0 ) cout << "Iter= " << iter << " Processing " << k_lor << " coincidences " << endl;
 
-			float projection = 0;
+            float projection = 0;
 
-			// SAMPLING THE LOR WITHING THE DETECTION VOLUME NLINE TIMES OR USE THE GLOBAL POS PROVIDED BY GATE
-			d1X = LOR_X1[k_lor]; d1Y = LOR_Y1[k_lor]; d1Z = LOR_Z1[k_lor]; time1 = LOR_T1[k_lor];
-			d2X = LOR_X2[k_lor]; d2Y = LOR_Y2[k_lor]; d2Z = LOR_Z2[k_lor]; time2 = LOR_T2[k_lor];
+            // SAMPLING THE LOR WITHING THE DETECTION VOLUME NLINE TIMES OR USE THE GLOBAL POS PROVIDED BY GATE
+            d1X = LOR_X1[k_lor]; d1Y = LOR_Y1[k_lor]; d1Z = LOR_Z1[k_lor]; time1 = LOR_T1[k_lor];
+            d2X = LOR_X2[k_lor]; d2Y = LOR_Y2[k_lor]; d2Z = LOR_Z2[k_lor]; time2 = LOR_T2[k_lor];
 
-			// all time variables are in ps, to allow floating precision along with the code.
-			time_diff = (time1 - time2); // always negative
+            // all time variables are in ps, to allow floating precision along with the code.
+            time_diff = (time1 - time2); // always negative
 
-    	projection = siddon(false, IMAGE, 0., d1X, d1Y, d1Z, d2X, d2Y, d2Z, time_diff,
-																ox, oy, oz, vx, vy, vz, nx, ny, nz, TOF, TOF_resolution);
+            projection = siddon(false, IMAGE, 0., d1X, d1Y, d1Z, d2X, d2Y, d2Z,
+                                time_diff, ox, oy, oz, vx, vy, vz, nx, ny, nz,
+                                TOF, TOF_resolution);
 
 	    //if (isnan(projection))
 	    //    {projection = 0;}
@@ -103,35 +105,36 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
 	    //    {projection = 0;}
 
 	    if (projection > 0) {
-        siddon(true, NEW_IMAGE, projection, d1X, d1Y, d1Z, d2X, d2Y, d2Z, time_diff,
-									ox, oy, oz, vx, vy, vz, nx, ny, nz, TOF, TOF_resolution);
+              siddon(true, NEW_IMAGE, projection, d1X, d1Y, d1Z, d2X, d2Y, d2Z,
+                     time_diff, ox, oy, oz, vx, vy, vz, nx, ny, nz, TOF,
+                     TOF_resolution);
 	    }
 
-			P += projection;
-		}
+            P += projection;
+          }
 
-		for(int iV = 0; iV < nvoxels; iV++) {
+          for (int iV = 0; iV < nvoxels; iV++) {
 
-			// Apply the sensitivity matrix.
-			if(SENS[iV] > 0) NEW_IMAGE[iV] = (NEW_IMAGE[iV] * IMAGE[iV]) / SENS[iV];
-			else NEW_IMAGE[iV] = 0.;
-
-			IMAGE[iV] = NEW_IMAGE[iV];
-		}
-
-		// Save the first, last, and every out_niter to file.
-		if (out_niter > 0 && ((iter % out_niter) == 0 || iter == niterations)) {
-			sprintf(outfile_name,"%s%d.raw",outfile_prefix,iter);
-			outfile = fopen(outfile_name,"wb");
-	 		fwrite(NEW_IMAGE,sizeof(float),nvoxels,outfile);
-      fclose(outfile);
+            // Apply the sensitivity matrix.
+            if (SENS[iV] > 0) NEW_IMAGE[iV] = (NEW_IMAGE[iV] * IMAGE[iV]) / SENS[iV];
+            else NEW_IMAGE[iV] = 0.;
+            IMAGE[iV] = NEW_IMAGE[iV];
+          }
+          // Save the first, last, and every out_niter to file.
+          if (out_niter > 0 && ((iter % out_niter) == 0 || iter == niterations)) {
+            stringstream ss;
+            ss << iter;
+            outfile_name = outfile_prefix + ss.str() + ".raw";
+            outfile = fopen(outfile_name.c_str(), "wb");
+            fwrite(NEW_IMAGE, sizeof(float), nvoxels, outfile);
+            fclose(outfile);
 	  }
 
-		for(int iV = 0; iV < nvoxels; iV++) {
-			NEW_IMAGE[iV] = 0.;
-		}
+          for (int iV = 0; iV < nvoxels; iV++) {
+            NEW_IMAGE[iV] = 0.;
+          }
 
-		cout << "Completed iteration : " << iter << " reading total coincidences: " << ncoinc << endl;
+          cout << "Completed iteration : " << iter << " reading total coincidences: " << ncoinc << endl;
 	}
 
 	delete NEW_IMAGE;
@@ -146,12 +149,11 @@ float ToFFunction(float dist, float deltaT, float TOF_resolution) {
   float deltaT_line = ( dist + (deltaT*c_here/2.0) );
   float line_resolution_SIGM = TOF_resolution*c_here/2.;
 
-  const float std_trunk = 3.;     //very important to cut the gaussian and give the elements some compact support
+  const float std_trunk = 3.; //very important to cut the gaussian and give the elements some compact support
 
   if (fabs( deltaT_line ) < (std_trunk*line_resolution_SIGM) ) {
     ToFweight = (1.0/sqrt(2.0*pi*line_resolution_SIGM*line_resolution_SIGM)) * exp( - ((deltaT_line * deltaT_line)/(2*line_resolution_SIGM*line_resolution_SIGM)));\
-  }
-  else {
+  } else {
     ToFweight = 0;
   }
 
@@ -176,9 +178,10 @@ float ToFFunction(float dist, float deltaT, float TOF_resolution) {
 
 */
 float siddon(bool back_project, float * image, float bp_projection_sum,
-		float det1_X, float det1_Y, float det1_Z, float det2_X, float det2_Y,
-		float det2_Z, float time_diff, float ox, float oy, float oz, float vx,
-		float vy, float vz, int nx, int ny, int nz, bool TOF, float TOF_resolution){
+             float det1_X, float det1_Y, float det1_Z, float det2_X,
+             float det2_Y, float det2_Z, float time_diff, float ox, float oy,
+             float oz, float vx, float vy, float vz, int nx, int ny, int nz,
+             bool TOF, float TOF_resolution){
 
   float accumulator = 0.0;
 
@@ -206,33 +209,29 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
 
 
   // CALCULATE ALPHA_MIN AND ALPHA_MAX
-     //alpha_min is the first touch of the ray with the volume if the ray
-     //comes from outside, otherwise it is zero; alpha_max is the last touch
-     //of the ray with the volume.
-     //in case the ray came from outside, we will also find out which side
-     //was it first (this is of essential importance for the continuation
-     //of the algorithm)
+  //alpha_min is the first touch of the ray with the volume if the ray
+  //comes from outside, otherwise it is zero; alpha_max is the last touch
+  //of the ray with the volume.
+  //in case the ray came from outside, we will also find out which side
+  //was it first (this is of essential importance for the continuation
+  //of the algorithm)
   float temp = 0;
   float alpha_min = fmax(fmax(temp, fminf(alpha_x_a, alpha_x_b)), fmax(fminf(alpha_y_a, alpha_y_b), fminf(alpha_z_a, alpha_z_b)));
 
   /* RAY_FIRST_HIT
-    saves which plane the ray hit first. if it
-    came from inside then it will be -1*/
+     saves which plane the ray hit first. if it
+     came from inside then it will be -1 */
   int ray_first_hit=-1;
-  if (alpha_min > 0)
-  {
+  if (alpha_min > 0) {
     // Ray came from outside
     if (alpha_min == fminf(alpha_x_a, alpha_x_b)) {
       ray_first_hit = 1;
-    }
-    else if (alpha_min == fminf(alpha_y_a, alpha_y_b)) {
+    } else if (alpha_min == fminf(alpha_y_a, alpha_y_b)) {
       ray_first_hit = 2;
-    }
-    else if (alpha_min == fminf(alpha_z_a, alpha_z_b)) {
+    } else if (alpha_min == fminf(alpha_z_a, alpha_z_b)) {
       ray_first_hit = 3;
     }
-  }
-  else {
+  } else {
     //Ray came from inside
     ray_first_hit = -1;
   }
@@ -246,38 +245,32 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
   //signum function for (X2[0]-X1[0])
   if ( X2[0] > X1[0] ) {
     di = 1;
-  }
-  else if ( X1[0] == X2[0] ) {
+  } else if ( X1[0] == X2[0] ) {
     di = 0;
-  }
-  else {
+  } else {
     di = -1;
   }
 
   //signum function for (X2[1]-X1[1])
   if ( X2[1] > X1[1] ) {
     dj = 1;
-  }
-  else if ( X1[1] == X2[1] ) {
+  } else if ( X1[1] == X2[1] ) {
     dj = 0;
-  }
-  else {
+  } else {
     dj = -1;
   }
 
   //signum function for (X2[2]-X1[2])
   if ( X2[2] > X1[2] ) {
     dk = 1;
-  }
-  else if ( X1[2] == X2[2] ) {
+  } else if ( X1[2] == X2[2] ) {
     dk = 0;
-  }
-  else {
+  } else {
     dk = -1;
   }
 
   /*  CALCULATE I_MIN, J_MIN, K_MIN AND ALPHA_X, ALPHA_Y, ALPHA_Z
-     I_MIN, J_MIN, K_MIN
+      I_MIN, J_MIN, K_MIN
          the min values define the plane where the ray first hits the volume
          this means that the one of the min values corresponds to the plane
          where the ray ENTERS the volume, and the other two min values are
@@ -322,29 +315,24 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
 
       if (X1[1] < X2[1]) {
         j_min = ceilf(j_min);
-      }
-      else if (X1[1] > X2[1]) {
+      } else if (X1[1] > X2[1]) {
         j_min = floorf(j_min);
-      }
-      else {
+      } else {
         j_min = numeric_limits<float>::max();
       }
 
       if (X1[2] < X2[2]) {
         k_min = ceilf(k_min);
-      }
-      else if (X1[2] > X2[2]) {
+      } else if (X1[2] > X2[2]) {
         k_min = floorf(k_min);
-      }
-      else {
+      } else {
         k_min = numeric_limits<float>::max(); // numeric_limits<float>::max();
       }
 
       alpha_x = (ox + (i_min + di) * vx - X1[0]) / (X2[0]-X1[0]);
       alpha_y = (oy + (j_min     ) * vy - X1[1]) / (X2[1]-X1[1]);
       alpha_z = (oz + (k_min     ) * vz - X1[2]) / (X2[2]-X1[2]);
-    }
-    else if (ray_first_hit == 2) {
+    } else if (ray_first_hit == 2) {
 
       // Now we know that ray entered from y-direction
       int j_temp=(int)floorf(j_min + 0.5);    //Rounding of j_min
@@ -352,29 +340,24 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
 
       if (X1[0] < X2[0]) {
         i_min = ceilf(i_min);
-      }
-      else if (X1[0] > X2[0]) {
+      } else if (X1[0] > X2[0]) {
         i_min = floorf(i_min);
-      }
-      else {
-				i_min = numeric_limits<float>::max(); //numeric_limits<float>::max();
+      } else {
+        i_min = numeric_limits<float>::max(); //numeric_limits<float>::max();
       }
 
       if (X1[2] < X2[2]) {
         k_min = ceilf(k_min);
-      }
-      else if (X1[2] > X2[2]) {
+      } else if (X1[2] > X2[2]) {
         k_min = floorf(k_min);
-      }
-      else {
+      } else {
         k_min = numeric_limits<float>::max(); //numeric_limits<float>::max();
       }
 
       alpha_x = (ox +  i_min       * vx - X1[0]) / (X2[0]-X1[0]);
       alpha_y = (oy + (j_min + dj) * vy - X1[1]) / (X2[1]-X1[1]);
       alpha_z = (oz +  k_min       * vz - X1[2]) / (X2[2]-X1[2]);
-    }
-    else if (ray_first_hit == 3) {
+    } else if (ray_first_hit == 3) {
 
       // Now we know that ray entered from z direction
       int k_temp=(int)floorf(k_min + 0.5);    //Rounding of z_min
@@ -382,21 +365,17 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
 
       if (X1[0] < X2[0]) {
         i_min = ceilf(i_min);
-      }
-      else if (X1[0] > X2[0]) {
+      } else if (X1[0] > X2[0]) {
         i_min = floorf(i_min);
-      }
-      else {
+      } else {
       	i_min = numeric_limits<float>::max(); //numeric_limits<float>::max();
       }
 
       if (X1[1] < X2[1]) {
         j_min = ceilf(j_min);
-      }
-      else if (X1[1] > X2[1]) {
+      } else if (X1[1] > X2[1]) {
         j_min = floorf(j_min);
-      }
-      else {
+      } else {
         j_min = numeric_limits<float>::max(); //numeric_limits<float>::max();
       }
 
@@ -404,37 +383,30 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
       alpha_y = (oy +  j_min        * vy - X1[1]) / (X2[1]-X1[1]);
       alpha_z = (oz + (k_min + dk ) * vz - X1[2]) / (X2[2]-X1[2]);
     }
-  }
-  else {
+  } else {
 
     //Ray came from inside
     if (X1[0]<X2[0]) {
       i_min = ceilf(i_min);
-    }
-    else if (X1[0]>X2[0]) {
+    } else if (X1[0]>X2[0]) {
       i_min = floorf(i_min);
-    }
-    else {
+    } else {
       i_min = numeric_limits<float>::max(); //numeric_limits<float>::max();
     }
 
     if (X1[1]<X2[1]) {
       j_min = ceilf(j_min);
-    }
-    else if (X1[1]>X2[1]) {
+    } else if (X1[1]>X2[1]) {
       j_min = floorf(j_min);
-    }
-    else {
+    } else {
       j_min = numeric_limits<float>::max();//numeric_limits<float>::max();
     }
 
     if (X1[2] < X2[2]) {
       k_min = ceilf(k_min);
-    }
-    else if (X1[2] > X2[2]) {
+    } else if (X1[2] > X2[2]) {
       k_min = floorf(k_min);
-    }
-    else {
+    } else {
       k_min = numeric_limits<float>::max(); //numeric_limits<float>::max();
     }
 
@@ -455,11 +427,11 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
   float dist ;
   int index ;
   float alpha_dt0 = 0.5;
-	weightedVoxel w_voxel;
+  weightedVoxel w_voxel;
   float dist_from_center;
 
   //NOTE TO SELF: an alpha of 0.5 indicates that the point is directly between the two interaction points -- deltaT = 0: this should incorportate ToF nicely!!
-	while (finished==0 && i >= 0 && i < nx && j >= 0 && j < ny && k >=0 && k < nz) {
+  while (finished==0 && i >= 0 && i < nx && j >= 0 && j < ny && k >=0 && k < nz) {
 
     if (alpha_x <= min(alpha_y, alpha_z)) {
 
@@ -477,13 +449,12 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
       alpha_x = alpha_x + delta_alpha_x;
       i += di;
 
-    }
-    else if (alpha_y <= min(alpha_x, alpha_z)) {
+    } else if (alpha_y <= min(alpha_x, alpha_z)) {
 
       //We have a y crossing
       if (alpha_y > 1) {
-          alpha_y = 1;
-          finished = 1;
+        alpha_y = 1;
+        finished = 1;
       }
       dist = (alpha_y - alpha_cur)*raylength;
       index = (int) (i + j*nx + k*nx*ny);
@@ -493,8 +464,7 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
       alpha_y = alpha_y + delta_alpha_y;
       j += dj;
 
-    }
-    else if (alpha_z <= min(alpha_x, alpha_y)) {
+    } else if (alpha_z <= min(alpha_x, alpha_y)) {
 
       //We have a z crossing
       if (alpha_z > 1) {
@@ -512,30 +482,29 @@ float siddon(bool back_project, float * image, float bp_projection_sum,
 
     w_voxel.index=index;
     w_voxel.w=dist;
-    if(TOF) {
+    if (TOF) {
       w_voxel.dt = ToFFunction(dist_from_center, time_diff, TOF_resolution);
-    }
-    else {
+    } else {
       w_voxel.dt = 1.0;
     }
 
-	  // each element of weighted voxel, so each voxel with its intersection
-	  // length will directly be used for the calculation of different types of
-	  // the algorithm. the algorithm that should be applied is defined by
-	  // the variable calc_type. following values are possible:
-	  // SA = 2*atan2(100, fmax((raylength/2.0)+dist_from_center, (raylength/2.0)-dist_from_center));
+    // each element of weighted voxel, so each voxel with its intersection
+    // length will directly be used for the calculation of different types of
+    // the algorithm. the algorithm that should be applied is defined by
+    // the variable calc_type. following values are possible:
+    // SA = 2*atan2(100, fmax((raylength/2.0)+dist_from_center, (raylength/2.0)-dist_from_center));
 
-		// Add to the back projection if selected.
-		if(back_project) {
-			image[w_voxel.index]+= w_voxel.dt*w_voxel.w / bp_projection_sum;
-		}
-		// Otherwise, add to the projection sum.
-		else {
-			accumulator += SA*w_voxel.dt*w_voxel.w*image[w_voxel.index];
-		}
+    // Add to the back projection if selected.
+    if(back_project) {
+      image[w_voxel.index]+= w_voxel.dt*w_voxel.w / bp_projection_sum;
+    }
+    // Otherwise, add to the projection sum.
+    else {
+      accumulator += SA*w_voxel.dt*w_voxel.w*image[w_voxel.index];
+    }
 
-	}
+  }
 
-	// Return the projection sum (0 if back_project is true).
-	return accumulator;
+  // Return the projection sum (0 if back_project is true).
+  return accumulator;
 }
