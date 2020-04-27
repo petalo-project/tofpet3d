@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -44,7 +45,7 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
   float * SENS, const char * outfile_prefix, int out_niter) {
 
 	FILE* outfile;
-	char outfile_name[100];
+        string outfile_name;
 
 	int nvoxels = NXY * NXY * NZ;
 
@@ -118,13 +119,14 @@ float * MLEM_TOF_Reco(int niterations, bool TOF, float TOF_resolution,
 
 			IMAGE[iV] = NEW_IMAGE[iV];
 		}
-
-		// Save the first, last, and every out_niter to file.
-		if (out_niter > 0 && ((iter % out_niter) == 0 || iter == niterations)) {
-			sprintf(outfile_name,"%s%d.raw",outfile_prefix,iter);
-			outfile = fopen(outfile_name,"wb");
-	 		fwrite(NEW_IMAGE,sizeof(float),nvoxels,outfile);
-      fclose(outfile);
+          // Save the first, last, and every out_niter to file.
+          if (out_niter > 0 && ((iter % out_niter) == 0 || iter == niterations)) {
+            stringstream ss;
+            ss << iter;
+            outfile_name = outfile_prefix + ss.str() + ".raw";
+            outfile = fopen(outfile_name.c_str(), "wb");
+            fwrite(NEW_IMAGE, sizeof(float), nvoxels, outfile);
+            fclose(outfile);
 	  }
 
 		for(int iV = 0; iV < nvoxels; iV++) {
