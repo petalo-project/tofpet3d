@@ -24,7 +24,7 @@ using namespace std;
 
 // Constants
 const float pi = 3.141592653589793;
-const float c_here = 0.3;
+const float c_here = 0.299792; // speed of light in the medium. It must match the units used in data. For instance: 0.299792 mm/ps.
 
 //--------- FUNCTIONS ------------------
 float siddon(bool back_project, float * image, float projection_sum, float det1_X, float det1_Y, float det1_Z, float det2_X, float det2_Y, float det2_Z, float time_diff, float ox, float oy, float oz, float vx, float vy, float vz, int nx, int ny, int nz, bool TOF, float TOF_resolution);
