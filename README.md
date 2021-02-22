@@ -11,4 +11,4 @@ make
 See [https://tofpet3d.readthedocs.io](https://tofpet3d.readthedocs.io)
 
 ## Contributors
-tofpet3d is based on the code by P. Solevi and J. Gillam, with modifications by P. Ferrario and J. Renner.
+tofpet3d is based on code by P. Solevi and J. Gillam, with modifications by P. Ferrario and J. Renner.
