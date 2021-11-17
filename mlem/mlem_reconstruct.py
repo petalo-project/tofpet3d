@@ -31,6 +31,10 @@ class MLEMReconstructor:
         | ``...``
         | ``(x0,yN,zN), (x1,yN,zN) ... (xN,yN,zN)``
 
+    To ensure the correct size of the sensitivity matrix, the class has to be
+    initialized with the values of img_nvoxels_xy and img_nvoxels_z in the
+    constructor method.
+
     **NOTE:** the LOR points may need to be sorted for the reconstruction to
     be correct
 
@@ -59,7 +63,7 @@ class MLEMReconstructor:
         self.prefix = prefix
         self.niterations = niterations
         self.save_every = save_every
-        self.TOF = True
+        self.TOF = TOF
         self.TOF_resolution = TOF_resolution
         self.img_size_xy = img_size_xy
         self.img_size_z = img_size_z
