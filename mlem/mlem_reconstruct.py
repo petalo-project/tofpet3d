@@ -59,7 +59,7 @@ class MLEMReconstructor:
         self.prefix = prefix
         self.niterations = niterations
         self.save_every = save_every
-        self.TOF = True
+        self.TOF = TOF
         self.TOF_resolution = TOF_resolution
         self.img_size_xy = img_size_xy
         self.img_size_z = img_size_z
